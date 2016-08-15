@@ -1,0 +1,75 @@
+{% extends 'voterapp/base.html' %}
+
+{% load staticfiles %}
+{% load humanize %}
+
+{% block head %}
+
+    <script type="text/javascript">
+    var candidates = [
+        {% for candidate in candidates %}
+            "{{ candidate }}",
+        {% endfor %}
+    ]
+    var maxCandidates = {{ maxCandidates }}
+    </script>
+
+    <script type="text/javascript" src="{% static "voterapp/vote.js" %}"></script>
+
+{% endblock %}
+
+{% block voteactive %}
+active
+{% endblock %}
+
+{% block body %}
+
+
+
+    <form>
+    {% for i in range %}
+        <div class="form-group form-inline candidate-div {% if i > 1 %}hidden{% endif %}" id="candidateDiv{{ i }}">
+            <label for="candidateBox{{ i }}">{{ i|ordinal }} Choice Name</label><br>
+            <input type="text" class="form-control candidate-input" id="candidateBox{{ i }}" placeholder="Name"
+                data-index="{{ i }}">
+            <button type="button" class="btn btn-danger remove-candidate-button hidden" data-index="{{ i }}">
+                <span class="glyphicon glyphicon-trash" aria-label="Delete candidate"></span>
+            </button>
+        </div>
+    {% endfor %}
+    </form>
+    <button class="btn btn-primary disabled" disabled id="addCandidateButton">Add Choice</button>
+    <button class="btn btn-primary disabled" disabled id="submitBallotButton"
+            data-toggle="modal" data-target="#submitVoteModal">Submit Vote</button>
+
+    <div class="modal fade" id="submitVoteModal" tabindex="-1" role="dialog" aria-labelledby="submitVoteLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title" id="submitVoteLabel">Submit Vote</h4>
+                </div>
+                <div class="modal-body">
+                    <ol class="list-group" id="candidateList">
+
+                    </ol>
+                    <br>
+                    <form id="submitVoteForm" action="/submitvote/" method="post">
+                        {% csrf_token %}
+                        <div class="form-group form-inline">
+                            <label for="emailBox">Email: </label>
+                            <input type="email" id="emailBox" name="email">
+                        </div>
+                        <input type="hidden" name="candidates" id="candidatesHiddenInput">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button class="btn btn-primary" id="confirmVoteButton">Submit Vote</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
