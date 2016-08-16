@@ -3,7 +3,7 @@
 $(document).ready(function(){
 
     $(".candidate-input").autocomplete({
-        source: candidates
+        source: Object.keys(candidates)
     }).on("input", function(){
         var index = $(this).data("index");
         if(index == numCandidates && index < maxCandidates){
@@ -65,11 +65,11 @@ $(document).ready(function(){
         chosenCandidates = [];
         for(var i = 1; i <= numCandidates; i++){
             var candidate = $("#candidateBox" + i).val();
-            if(candidate != '') {
+            if(candidate != '' && chosenCandidates.indexOf(candidate) < 0) {
                 candidateList.append($(
                     '<li class="list-group-item"><strong>' + num + '.</strong> ' + candidate + '</li>'
                 ));
-                chosenCandidates.push(candidate);
+                chosenCandidates.push(candidates[candidate]);
                 num++;
             }
         }

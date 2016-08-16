@@ -27,5 +27,5 @@ CREATE OR REPLACE FUNCTION vote_error_check() RETURNS trigger AS $$
     END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER vote_error_check BEFORE INSERT OR UPDATE ON votes
+CREATE TRIGGER tentative_vote_error_check BEFORE INSERT OR UPDATE ON tentative_votes
     FOR EACH ROW EXECUTE PROCEDURE vote_error_check();

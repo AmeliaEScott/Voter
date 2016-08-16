@@ -6,12 +6,12 @@
 {% block head %}
 
     <script type="text/javascript">
-    var candidates = [
-        {% for candidate in candidates %}
-            "{{ candidate }}",
+    var candidates = {
+        {% for candidate,id in candidates.items %}
+            "{{ candidate }}":{{ id }},
         {% endfor %}
-    ]
-    var maxCandidates = {{ maxCandidates }}
+    };
+    var maxCandidates = {{ maxCandidates }};
     </script>
 
     <script type="text/javascript" src="{% static "voterapp/vote.js" %}"></script>
