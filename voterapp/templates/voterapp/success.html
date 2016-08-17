@@ -2,5 +2,51 @@
 
 {% block body %}
 
-    <h1>Much success</h1>
+    <span>
+        An email has been sent to you at {{ email }}. Please click the link in that email to confirm your vote.
+        <button class="btn btn-link" data-toggle="popover" data-trigger="focus" data-placement="auto"
+           data-content="Your vote will not be saved into the database until you click the link
+                        sent to your email. This is done to make it more difficult for a person
+                        to vote multiple times.">Why?</button>
+    </span>
+    
+    <h2>Your vote</h2>
+    <ol class="list-group">
+    {% for candidate in candidates %}
+        <li class="list-group-item {% if candidate.corrected %}list-group-item-warning{% endif %}">
+        <strong>{{ forloop.counter }}. </strong>{{ candidate.name }} <br>
+            {% if candidate.corrected %}
+            <small>
+                This candidate's name has been corrected from "{{ candidate.oldname }}".
+                If this correction is wrong, and you're sure you wanted to vote for
+                {{ candidate.oldname }}, please click <a>this link.</a>
+                <!-- TODO: Actually add the link. -->
+            </small>
+            {% endif %}
+        </li>
+    {% endfor %}
+    </ol>
+    <ol class="list-group">
+        <li class="list-group-item {% if normalvote.corrected %}list-group-item-warning{% endif %}">
+            <strong>Normal Election Vote: </strong> {{ normalvote.name }}<br>
+            {% if normalvote.corrected %}
+            <small>
+                This candidate's name has been corrected from "{{ normalvote.oldname }}".
+                If this correction is wrong, and you're sure you wanted to vote for
+                {{ normalvote.oldname }}, please click <a>this link.</a>
+                <!-- TODO: Actually add the link. -->
+            </small>
+            {% endif %}
+        </li>
+    </ol>
+    <br>
+
+    <br>
+
+    <script type="text/javascript">
+        $(document).ready(function(){
+            $('[data-toggle="popover"]').popover();
+        })
+    </script>
+
 {% endblock %}

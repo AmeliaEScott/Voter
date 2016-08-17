@@ -3,5 +3,6 @@ from . import views
 
 urlpatterns = [
     url(r'^$', views.index, name='index'),
-    url(r'^submitvote/', views.submitvote, name='submitvote'),
+    url(r'^submitvote/$', views.submitvote, name='submitvote'),
+    url(r'^confirmvote/(?P<voteid>[a-zA-z0-9+_]{32})/$', views.confirmvote, name='confirmvote')
 ]

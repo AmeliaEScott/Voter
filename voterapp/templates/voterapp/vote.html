@@ -25,19 +25,24 @@ active
 {% block body %}
 
 
+    <div class="row">
+        <form>
+            <div class="col-sm-6">
+                {% for i in range %}
+                    <div class="form-group form-inline candidate-div {% if i > 1 %}hidden{% endif %}" id="candidateDiv{{ i }}">
+                        <label for="candidateBox{{ i }}">{{ i|ordinal }} Choice Name</label><br>
+                        <input type="text" class="form-control candidate-input" id="candidateBox{{ i }}" placeholder="Name"
+                            data-index="{{ i }}">
+                        <button type="button" class="btn btn-danger remove-candidate-button hidden" data-index="{{ i }}">
+                            <span class="glyphicon glyphicon-trash" aria-label="Delete candidate"></span>
+                        </button>
+                    </div>
+                {% endfor %}
+            </div>
+            <hr>
 
-    <form>
-    {% for i in range %}
-        <div class="form-group form-inline candidate-div {% if i > 1 %}hidden{% endif %}" id="candidateDiv{{ i }}">
-            <label for="candidateBox{{ i }}">{{ i|ordinal }} Choice Name</label><br>
-            <input type="text" class="form-control candidate-input" id="candidateBox{{ i }}" placeholder="Name"
-                data-index="{{ i }}">
-            <button type="button" class="btn btn-danger remove-candidate-button hidden" data-index="{{ i }}">
-                <span class="glyphicon glyphicon-trash" aria-label="Delete candidate"></span>
-            </button>
-        </div>
-    {% endfor %}
-    </form>
+        </form>
+    </div>
     <button class="btn btn-primary disabled" disabled id="addCandidateButton">Add Choice</button>
     <button class="btn btn-primary disabled" disabled id="submitBallotButton"
             data-toggle="modal" data-target="#submitVoteModal">Submit Vote</button>
@@ -60,9 +65,19 @@ active
                         {% csrf_token %}
                         <div class="form-group form-inline">
                             <label for="emailBox">Email: </label>
-                            <input type="email" id="emailBox" name="email">
+                            <input class="form-control" type="email" id="emailBox" name="email" placeholder="email">
+                            <span class="help-inline hidden" id="emailBoxError">This is not a valid Email address</span>
+                        </div>
+                        <br>
+                        <div class="form-group form-inline">
+                            <label for="normalVoteBox">Your vote in the normal election: </label>
+                            <input type="text" class="form-control candidate-input" id="normalVoteBox" placeholder="Name"><br>
+                            <small>To compare the results of this ranked vote to the results of a traditional
+                                    vote, please let us know who you plan to vote for in the real election. <br>
+                                    <strong>This will have no effect on your candidate rankings.</strong></small>
                         </div>
                         <input type="hidden" name="candidates" id="candidatesHiddenInput">
+                        <input type="hidden" name="normalvote" id="normalVoteHiddenInput">
                     </form>
                 </div>
                 <div class="modal-footer">
