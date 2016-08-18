@@ -1,0 +1,18 @@
+{% extends "voterapp/base.html" %}
+
+{% block body %}
+
+    <h2>Http {{ status }} error: </h2>
+    <p>That either means there's a problem with my website, or you tried doing something you shouldn't have.
+        If it's my website's fault, please let me know at <!-- TODO: Add email address --> here.</p>
+    <p>If you do decide to email me, please include the following error message:</p>
+    <div class="panel panel-danger">
+        <div class="panel-heading">
+            <h4>Error</h4>
+        </div>
+        <div class="panel-body">
+            {{ error_message }}
+        </div>
+    </div>
+
+{% endblock %}

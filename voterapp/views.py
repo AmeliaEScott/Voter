@@ -1,6 +1,7 @@
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseServerError, HttpResponseNotFound
 from django.shortcuts import render
 from django.utils.datastructures import MultiValueDictKeyError
+from django.core import mail
 from Voter.settings import CONFIG
 import os
 import base64
@@ -22,6 +23,8 @@ connectionPool = pool.ThreadedConnectionPool(5, 30,
 maxcandidates = 20
 regex = re.compile(r'^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.'
                    '[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$')
+mailConnection = mail.get_connection(**(CONFIG['email']['send']))
+mailConnection.open()
 
 
 def index(request):
@@ -65,13 +68,15 @@ def fixcandidate(candidate, cursor):
         if 'name' not in candidate:
             return None
 
+        candidate['oldname'] = candidate['name']
+        candidate['name'] = re.sub(r"[^a-zA-Z' ]", string=candidate['name'], repl="")
+
         # This query returns the closest existing name and id, or makes a new candidate if
         # no existing candidates are close enough
         cursor.execute("SELECT id,resultName,isNew FROM add_candidate(%s)",
                        (candidate['name'].title(),))
         result = cursor.fetchmany(1)[0]
 
-        candidate['oldname'] = candidate['name']
         candidate['name'] = result[1]
         candidate['corrected'] = (candidate['name'].lower() != candidate['oldname'].lower())
         candidate['isnew'] = result[2]
@@ -84,19 +89,34 @@ def fixcandidate(candidate, cursor):
 
 
 def submitvote(request):
-    print(request.POST['candidates'])
     try:
         candidates = json.loads(request.POST['candidates'])
         if len(candidates) > maxcandidates:
-            return HttpResponse('Too many candidates!', status=400)
+            context = {
+                'error_message': str(len(candidates)) +
+                ' candidates is too many. Limit yourself to ' + str(maxcandidates) + '.',
+            }
+            return HttpResponseBadRequest(render(request=request, template_name='voterapp/error.html', context=context))
     except ValueError:
-        return HttpResponse('Badly formatted JSON: ' + request.POST['candidates'], status=400)
+        context = {
+            'error_message': 'Badly formatted JSON for parameter "candidates": ' + request.POST['candidates'],
+            'status': 400
+        }
+        return HttpResponseBadRequest(render(request=request, template_name='voterapp/error.html', context=context))
     except MultiValueDictKeyError:
-        return HttpResponse(status=400)
+        context = {
+            'error_message': "Parameter 'candidates' not found.",
+            'status': 400
+        }
+        return HttpResponseBadRequest(render(request=request, template_name='voterapp/error.html', context=context))
     # print(repr(candidates))
-    email = request.POST['email']
-    if regex.match(email) is None:
-        return HttpResponse('Poorly formatted email: ' + email, status=400)
+    emailAddress = request.POST['email']
+    if regex.match(emailAddress) is None:
+        context = {
+            'error_message': '"' + emailAddress + '" is not a valid email address.',
+            'status': 400
+        }
+        return HttpResponseBadRequest(render(request=request, template_name='voterapp/error.html', context=context))
 
     normalvote = {}
     try:
@@ -104,13 +124,17 @@ def submitvote(request):
         # print('Normalvote, unformatted: ' + normalvote)
         normalvote = json.loads(request.POST['normalvote'])
     except ValueError:
-        return HttpResponse(status=400)
+        context = {
+            'error_message': 'Badly formatted JSON for parameter "normalvote": ' + request.POST['normalvote'],
+            'status': 400
+        }
+        return HttpResponseBadRequest(render(request=request, template_name='voterapp/error.html', context=context))
     except MultiValueDictKeyError:
         pass
 
     # print('Normalvote: ' + repr(normalvote))
 
-    emailhash = hashemail(email)
+    emailhash = hashemail(emailAddress)
 
     # print(voteID)
 
@@ -129,7 +153,13 @@ def submitvote(request):
             for i in range(0, len(candidates)):
                 candidate = fixcandidate(candidates[i], cursor)
                 if candidate is None:
-                    return HttpResponse(status=400)
+                    context = {
+                        'error_message': 'You provided a candidate with no name or id. Original JSON: '
+                                         + request.POST['candidates'],
+                        'status': 400
+                    }
+                    return HttpResponseBadRequest(render(request=request, template_name='voterapp/error.html',
+                                                         context=context))
 
                 # Build up the query a little bit
                 query[0] += ', c' + str(i + 1)
@@ -137,7 +167,12 @@ def submitvote(request):
 
                 if candidate['id'] in candidateids:
                     # Duplicate candidate
-                    return HttpResponse(status=400)
+                    context = {
+                        'error_message': 'Candidate number ' + str(candidate['id']) + ' was selected more than once.',
+                        'status': 400
+                    }
+                    return HttpResponseBadRequest(render(request=request, template_name='voterapp/error.html',
+                                                         context=context))
                 else:
                     args.append(candidate['id'])
                     candidateids.append(candidate['id'])
@@ -151,7 +186,7 @@ def submitvote(request):
 
             cursor.execute("SELECT 1 FROM votes WHERE email=%s", (emailhash,))
             if len(cursor.fetchmany(1)) == 1:
-                return HttpResponse("Email " + email + " already exists in database.", status=409)
+                return HttpResponse("Email " + emailAddress + " already exists in database.", status=409)
 
             success = False
             failurecount = 0
@@ -172,16 +207,29 @@ def submitvote(request):
             if (not success) or voteid == '':
                 print("Wtf happened?")
                 connection.rollback()
-                return HttpResponse(status=500)
+                context = {
+                    'error_message': 'Something has gone terribly wrong. '
+                                     'Tell me if you see this message; I''ll know what it means.',
+                    'status': 500
+                }
+                return HttpResponseServerError(render(request=request, template_name='voterapp/error.html',
+                                                      context=context))
             else:
-                # TODO: Send email with link
+                # with  as emailConnection:
+                message = "Thanks for voting! The last step is to click this link to confirm your vote.\n\n" \
+                          "https://www.better-ballot.com/confirmvote/" + voteid + "/"
+                mail.EmailMessage(
+                    "Vote confirmation", message, "noreply@better-ballot.com", (emailAddress, ),
+                    connection=mailConnection,
+                ).send()
                 connection.commit()
                 context = {
                     'candidates': candidates,
-                    'email': email,
+                    'email': emailAddress,
                     'normalvote': normalvote
                 }
                 return HttpResponse(render(request, 'voterapp/success.html', context=context))
+
 
 
 def confirmvote(request, voteid):
@@ -202,10 +250,15 @@ def confirmvote(request, voteid):
                 print(email)
                 cursor.execute("DELETE FROM tentative_votes WHERE email=%s;", (email, ))
                 connection.commit()
-                return HttpResponse("Such Success wow")
+                return HttpResponse(render(request=request, template_name='voterapp/confirmationSuccess.html'))
             else:
                 connection.rollback()
-                return HttpResponse(status=404)
+                context = {
+                    'error_message': 'The specified ID "' + voteid + '" was not found.',
+                    'status': 404
+                }
+                return HttpResponseNotFound(render(request=request, template_name='voterapp/error.html',
+                                                   context=context))
 
 
 class ConnectionWrapper(object):

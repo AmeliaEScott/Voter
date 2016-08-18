@@ -14,7 +14,7 @@ $(document).ready(function(){
                 button.removeClass("disabled").removeAttr("disabled");
                 $("#submitBallotButton").removeClass("disabled").removeAttr("disabled");
             }else{
-                button.addClass("disabled").attr("disabled", true);
+                //button.addClass("disabled").attr("disabled", true);
                 if(numCandidates == 1){
                     $("#submitBallotButton").addClass("disabled").attr("disabled", true);
                 }

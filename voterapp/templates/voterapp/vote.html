@@ -8,7 +8,7 @@
     <script type="text/javascript">
     var candidates = {
         {% for candidate,id in candidates.items %}
-            "{{ candidate }}":{{ id }},
+            "{{ candidate|safe }}":{{ id }},
         {% endfor %}
     };
     var maxCandidates = {{ maxCandidates }};
@@ -33,9 +33,13 @@ active
                         <label for="candidateBox{{ i }}">{{ i|ordinal }} Choice Name</label><br>
                         <input type="text" class="form-control candidate-input" id="candidateBox{{ i }}" placeholder="Name"
                             data-index="{{ i }}">
-                        <button type="button" class="btn btn-danger remove-candidate-button hidden" data-index="{{ i }}">
+                        <button type="button" class="btn btn-default remove-candidate-button hidden" data-index="{{ i }}">
                             <span class="glyphicon glyphicon-trash" aria-label="Delete candidate"></span>
                         </button>
+                        {% if forloop.counter == maxCandidates %}
+                            <br>
+                            <small>I think {{ maxCandidates }} choices is enough.</small>
+                        {% endif %}
                     </div>
                 {% endfor %}
             </div>
@@ -43,7 +47,7 @@ active
 
         </form>
     </div>
-    <button class="btn btn-primary disabled" disabled id="addCandidateButton">Add Choice</button>
+    <button class="btn btn-primary" id="addCandidateButton">Add Choice</button>
     <button class="btn btn-primary disabled" disabled id="submitBallotButton"
             data-toggle="modal" data-target="#submitVoteModal">Submit Vote</button>
 

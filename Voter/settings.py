@@ -26,7 +26,7 @@ SECRET_KEY = 'o=k7ggkka139*u7#c%a*wd5d+09&wu_rj+w%qq*e3*1+^nvg94'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -137,3 +137,5 @@ if configPath is None:
 
 with open(configPath) as configFile:
     CONFIG = json.load(configFile)
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
