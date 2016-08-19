@@ -1,0 +1,44 @@
+{% extends 'voterapp/base.html' %}
+
+{% block body %}
+
+<h1 class="text-center">A Smarter Vote for America</h1>
+<div class="row">
+    <div class="col-md-6">
+        <h3>Welcome!</h3>
+        <a class="btn btn-primary btn-sm" style="white-space: normal;" href="/vote">
+            Click here to skip the explanation and just vote</a><br><br>
+
+        <p>If you've spent any time on the internet or watching TV in the past few months, you'll know that
+        a lot of people are very upset with both of America's presidential nominees. You might think, "If this
+        is a democracy, how did we end up with nominees that seemingly nobody likes?"</p>
+
+        <p>Well, the answer is pretty complicated. It's based on the fact that, in American elections,
+        citizens can only choose one candidate. This leads to "defensive voting," where someone might choose
+        to vote not for their favorite candidate, but for the candidate who has the best chance of beating
+        their least favorite candidate.</p>
+
+        <p>One potential solution is to allow citizens to rank several candidates in order of preference,
+        rather than just picking one. That way, a vote for a third-party candidate is not a waste. If that
+        candidate loses, then your vote is transferred to your second choice, and all votes are recounted.</p>
+
+        <p>None of this is my original thought. I got it all from this video
+        by YouTuber <a href="https://www.youtube.com/user/CGPGrey/videos">CGP Grey</a>. It explains all of
+        this much more effectively and in much more detail than I have here.<br>
+        <small>(I would also recommend checking out the rest of the videos on his channel.
+            They're all great.) </small>
+        </p>
+
+        <p>This website is meant to test out how the 2016 presidential election would turn out if this type of
+        voting was used. So <a href="/vote">click here</a> to cast your vote, then check back November 9th
+        to see the results. And please, share it with everyone you know! The more people who participate,
+        the more meaningful this experiment will be.</p>
+    </div>
+    <div class="col-md-6">
+        <div class="embed-responsive embed-responsive-16by9">
+            <iframe width="560" height="315" src="https://www.youtube.com/embed/3Y3jE3B8HsE" frameborder="0" allowfullscreen></iframe>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

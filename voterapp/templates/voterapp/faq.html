@@ -1,0 +1,36 @@
+{% extends 'voterapp/base.html' %}
+
+{% block faqactive %}
+active
+{% endblock %}
+
+{% block body %}
+
+    <h2>Frequently Asked Questions</h2>
+
+    <h4 id="whyEmail">Why do you need my email address?</h4>
+    <p>By requiring you to provide your email address, it becomes a little more difficult to vote more than
+    once: When you cast your vote, it won't actually be counted until you click the link sent to your
+    email address.</p>
+    <p>Of course, if you have more than one valid email address, you <i>could</i> vote more than once,
+    but that seems like a real waste of your time. It's not like this is a real election. </p>
+
+    <h4>Will you send me spam?</h4>
+    <p>Even if I wanted to, I couldn't. After the initial confirmation email is sent, your email address
+    is irreversibly scrambled using what's called a hashing algorithm. For example, in the database,
+    my email looks like this:
+        <code>
+            rlknyOH9RkmqETXMUQn11T1v_DQxsCF_3A9yuy8sBiPeamcDh8UeQJt3viYR
+        </code>
+    </p>
+
+    <hr>
+
+    <h4 id="ballotChoices">How did you choose which candidates to put on the ballot?</h4>
+    <p>The candidates on the ballot are all of the candidates from the Democratic or Republican
+    primaries, as well as the third-party candidates who are currently running.</p>
+    <p>Of course, "currently running" is a bit loosely defined. Pretty much anyone
+    can say they're running for president, so the ballot would be much too long if I included
+    every single person who's running. I tried to limit it to the serious candidates, but that's
+    awfully subjective. If you disagree with my choices, let me know.</p>
+{% endblock %}

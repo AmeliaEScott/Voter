@@ -2,15 +2,17 @@ from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseServer
 from django.shortcuts import render
 from django.utils.datastructures import MultiValueDictKeyError
 from django.core import mail
-from Voter.settings import CONFIG
+import smtplib
+from Voter.settings import CONFIG, BASE_DIR
 import os
+import random
 import base64
 import psycopg2
 from psycopg2 import pool
 import scrypt
 import json
 import re
-
+import atexit
 
 config = CONFIG['database']
 host = config['host']
@@ -18,27 +20,51 @@ database = config['database']
 user = config['user']
 password = config['password']
 port = config['port']
-connectionPool = pool.ThreadedConnectionPool(5, 30,
+connectionPool = pool.ThreadedConnectionPool(5, 10,
                                              host=host, port=port, database=database, user=user, password=password)
 maxcandidates = 20
 regex = re.compile(r'^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.'
                    '[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$')
 mailConnection = mail.get_connection(**(CONFIG['email']['send']))
-mailConnection.open()
+# mailConnection.open()
+
+with open(os.path.join(BASE_DIR, 'hitcounts.json')) as file:
+    hitCounts = json.load(file)
+
+
+def savehitcounts():
+    with open(os.path.join(BASE_DIR, 'hitcounts.json'), 'w+') as file:
+        file.truncate()
+        json.dump(hitCounts, file)
+    print("Hitcount file saved")
+
+atexit.register(savehitcounts)
 
 
 def index(request):
+    hitCounts['index'] += 1
+    return HttpResponse(render(request=request, template_name='voterapp/index.html'))
+
+
+def faq(request):
+    return HttpResponse(render(request=request, template_name='voterapp/faq.html'))
+
+
+def vote(request):
     context = {
         'candidates': {},
         'range': range(1, maxcandidates + 1),
-        'maxCandidates': maxcandidates
+        'maxCandidates': maxcandidates,
+        'ballot': []
     }
     with ConnectionWrapper(connectionPool) as connection:
         cursor = connection.cursor()
-        cursor.execute("SELECT name,id FROM candidates")
+        cursor.execute("SELECT name,id,on_ballot FROM candidates ORDER BY name LIMIT 10000;")
         results = cursor.fetchmany(100)
         for result in results:
             context['candidates'][result[0]] = result[1]
+            if result[2]:
+                context['ballot'].append(result[0])
         return render(request=request, context=context, template_name='voterapp/vote.html')
 
 
@@ -110,10 +136,10 @@ def submitvote(request):
         }
         return HttpResponseBadRequest(render(request=request, template_name='voterapp/error.html', context=context))
     # print(repr(candidates))
-    emailAddress = request.POST['email']
-    if regex.match(emailAddress) is None:
+    emailaddress = request.POST['email']
+    if regex.match(emailaddress) is None:
         context = {
-            'error_message': '"' + emailAddress + '" is not a valid email address.',
+            'error_message': '"' + emailaddress + '" is not a valid email address.',
             'status': 400
         }
         return HttpResponseBadRequest(render(request=request, template_name='voterapp/error.html', context=context))
@@ -134,7 +160,7 @@ def submitvote(request):
 
     # print('Normalvote: ' + repr(normalvote))
 
-    emailhash = hashemail(emailAddress)
+    emailhash = hashemail(emailaddress)
 
     # print(voteID)
 
@@ -186,7 +212,13 @@ def submitvote(request):
 
             cursor.execute("SELECT 1 FROM votes WHERE email=%s", (emailhash,))
             if len(cursor.fetchmany(1)) == 1:
-                return HttpResponse("Email " + emailAddress + " already exists in database.", status=409)
+                context = {
+                    'error_message': 'The email address you provided, "' + emailaddress + '", has already been'
+                                     'used to cast a vote.',
+                    'status': 400
+                }
+                return HttpResponseServerError(render(request=request, template_name='voterapp/error.html',
+                                                      context=context))
 
             success = False
             failurecount = 0
@@ -216,20 +248,41 @@ def submitvote(request):
                                                       context=context))
             else:
                 # with  as emailConnection:
-                message = "Thanks for voting! The last step is to click this link to confirm your vote.\n\n" \
-                          "https://www.better-ballot.com/confirmvote/" + voteid + "/"
-                mail.EmailMessage(
-                    "Vote confirmation", message, "noreply@better-ballot.com", (emailAddress, ),
-                    connection=mailConnection,
-                ).send()
-                connection.commit()
-                context = {
-                    'candidates': candidates,
-                    'email': emailAddress,
-                    'normalvote': normalvote
-                }
-                return HttpResponse(render(request, 'voterapp/success.html', context=context))
-
+                try:
+                    mailConnection.open()
+                    message = "Thanks for voting! The last step is to click this link to confirm your vote.\n\n" \
+                              "https://www.better-ballot.com/confirmvote/" + voteid + "/"
+                    mail.EmailMessage(
+                        "Vote confirmation", message, "noreply@better-ballot.com", (emailaddress, ),
+                        connection=mailConnection,
+                    ).send()
+                    mailConnection.close()
+                    connection.commit()
+                    context = {
+                        'candidates': candidates,
+                        'email': emailaddress,
+                        'normalvote': normalvote
+                    }
+                    hitCounts['votesCast'] += 1
+                    return HttpResponse(render(request, 'voterapp/success.html', context=context))
+                except smtplib.SMTPRecipientsRefused:
+                    connection.rollback()
+                    context = {
+                        'error_message': 'Failed to send email to "' + emailaddress + '". Are you sure '
+                                         'this is a valid address?',
+                        'status': 400
+                    }
+                    return HttpResponseServerError(render(request=request, template_name='voterapp/error.html',
+                                                   context=context))
+                except:
+                    connection.rollback()
+                    context = {
+                        'error_message': 'Something that I didn''t plan for has gone wrong. Please let me know '
+                                         'about this error.',
+                        'status': 500
+                    }
+                    return HttpResponseServerError(render(request=request, template_name='voterapp/error.html',
+                                                   context=context))
 
 
 def confirmvote(request, voteid):
@@ -250,6 +303,7 @@ def confirmvote(request, voteid):
                 print(email)
                 cursor.execute("DELETE FROM tentative_votes WHERE email=%s;", (email, ))
                 connection.commit()
+                hitCounts['votesConfirmed'] += 1
                 return HttpResponse(render(request=request, template_name='voterapp/confirmationSuccess.html'))
             else:
                 connection.rollback()
@@ -264,14 +318,20 @@ def confirmvote(request, voteid):
 class ConnectionWrapper(object):
 
     def __init__(self, connpool):
+        self.key = random.randint(1, 1000000)
         self.connpool = connpool
 
     def __enter__(self):
-        self.connection = self.connpool.getconn()
-        return self.connpool.getconn()
+        self.connection = self.connpool.getconn(key=self.key)
+        print("Got connection " + str(self.key))
+        return self.connection
 
     def __exit__(self, *args):
-        self.connpool.putconn(self.connection)
+        # if self.connection.status == psycopg2.extensions.STATUS_IN_TRANSACTION:
+        # print("Rolling back connection")
+        self.connection.rollback()
+        self.connpool.putconn(self.connection, key=self.key)
+        print("Put connection " + str(self.key))
 
     def getconnection(self):
         return self.connection

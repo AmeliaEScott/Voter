@@ -26,8 +26,36 @@ active
 
 
     <div class="row">
-        <form>
-            <div class="col-sm-6">
+        <div class="col-md-6">
+            <button class="btn btn-primary" data-toggle="collapse" href="#instructions"
+                    aria-expanded="false" aria-controls="instructions">
+                Click for Instructions
+            </button>
+            <br><br>
+            <div class="collapse" id="instructions">
+                <div class="panel panel-default">
+                    <div class="panel-body">
+                        <h4>Casting your Vote</h4>
+                        <p>You may choose up to 20 different candidates, or as few as one. If you choose more than
+                        one, order them by your preference. You do not need to rank every candidate on the ballot;
+                        you can omit any candidates that you don't like.</p>
+                        <p>When you submit your vote, you will be asked who you plan to vote for in the real
+                        election. This has no effect on this ballot; it will only be used to compare the
+                        outcome of this ranked ballot to a traditional ballot.</p>
+
+                        <h4>Write-in Votes</h4>
+                        <p>You do not have to choose a candidate from the official ballot- you may write
+                        in any name you like.</p>
+                        <p>However, there's something you should know: Because computers are picky, it's important
+                        that you type the candidate's name exactly the same as other voters have. Therefore, each
+                        text box has a drop-down that will suggest candidate names that other voters
+                        have typed in. If possible, please select a name from this list.</p>
+                        <p>If you want to vote for someone not on the list, that's fine too. Just please spell
+                        their name correctly so that future voters can find them.</p>
+                    </div>
+                </div>
+            </div>
+            <form>
                 {% for i in range %}
                     <div class="form-group form-inline candidate-div {% if i > 1 %}hidden{% endif %}" id="candidateDiv{{ i }}">
                         <label for="candidateBox{{ i }}">{{ i|ordinal }} Choice Name</label><br>
@@ -42,14 +70,25 @@ active
                         {% endif %}
                     </div>
                 {% endfor %}
-            </div>
+            </form>
+            <button class="btn btn-primary" id="addCandidateButton">Add Choice</button>
+            <button class="btn btn-primary disabled" disabled id="submitBallotButton"
+                data-toggle="modal" data-target="#submitVoteModal">Submit Vote</button>
+        </div>
+        <div class="col-md-6">
+            <h4>Ballot</h4>
+            <ul class="list-group">
+                {% for candidate in ballot %}
+                <li class="list-group-item">{{ candidate }}</li>
+                {% endfor %}
+            </ul>
+            <a class="hidden" href="/faq#ballotChoices">Why these people?</a>
             <hr>
 
-        </form>
+
+        </div>
     </div>
-    <button class="btn btn-primary" id="addCandidateButton">Add Choice</button>
-    <button class="btn btn-primary disabled" disabled id="submitBallotButton"
-            data-toggle="modal" data-target="#submitVoteModal">Submit Vote</button>
+
 
     <div class="modal fade" id="submitVoteModal" tabindex="-1" role="dialog" aria-labelledby="submitVoteLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">

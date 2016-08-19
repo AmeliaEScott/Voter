@@ -126,14 +126,7 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),
 ]
 
-# This should always remain constant. It's the name of the environment
-# variable that stores the path to the config file that contains such
-# secrets as API keys
-ENVIRONMENT_VARIABLE_NAME = 'BETTERBALLOTSCONFIG'
-
-configPath = os.environ[ENVIRONMENT_VARIABLE_NAME]
-if configPath is None:
-    configPath = os.path.join(BASE_DIR, "config.json")
+configPath = '/Users/Timmy/Documents/betterballots.json'
 
 with open(configPath) as configFile:
     CONFIG = json.load(configFile)

@@ -112,7 +112,9 @@ $(document).ready(function(){
         if(event.which == 13 && !submitForm()){
             event.preventDefault();
         }
-    })
+    });
+
+    $('[data-toggle="popover"]').popover();
 });
 
 function submitForm(){
