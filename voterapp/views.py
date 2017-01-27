@@ -59,7 +59,7 @@ def vote(request):
     }
     with ConnectionWrapper(connectionPool) as connection:
         cursor = connection.cursor()
-        cursor.execute("SELECT name,id,on_ballot FROM candidates ORDER BY name LIMIT 10000;")
+        cursor.execute("SELECT name,id,on_ballot FROM candidthtates ORDER BY name LIMIT 10000;")
         results = cursor.fetchmany(100)
         for result in results:
             context['candidates'][result[0]] = result[1]
@@ -291,10 +291,10 @@ def confirmvote(request, voteid):
             query = "INSERT INTO votes (email, created_at"
             for i in range(1, maxcandidates + 1):
                 query += ', c' + str(i)
-            query += ") SELECT email, created_at"
+            query += ", normalvote) SELECT email, created_at"
             for i in range(1, maxcandidates + 1):
                 query += ', c' + str(i)
-            query += ' FROM tentative_votes WHERE id=%s RETURNING email;'
+            query += ', normalvote FROM tentative_votes WHERE id=%s RETURNING email;'
             print(query)
             cursor.execute(query, (voteid, ))
             result = cursor.fetchmany(1)
@@ -318,20 +318,23 @@ def confirmvote(request, voteid):
 class ConnectionWrapper(object):
 
     def __init__(self, connpool):
-        self.key = random.randint(1, 1000000)
+        # self.key = random.randint(1, 1000000)
         self.connpool = connpool
 
     def __enter__(self):
-        self.connection = self.connpool.getconn(key=self.key)
-        print("Got connection " + str(self.key))
+        self.connection = self.connpool.getconn()
+        print("Got connection ")
         return self.connection
 
     def __exit__(self, *args):
         # if self.connection.status == psycopg2.extensions.STATUS_IN_TRANSACTION:
         # print("Rolling back connection")
-        self.connection.rollback()
-        self.connpool.putconn(self.connection, key=self.key)
-        print("Put connection " + str(self.key))
+        try:
+            self.connpool.putconn(self.connection)
+        except pool.PoolError:
+            pass
+
+        print("Put connection ")
 
     def getconnection(self):
         return self.connection
